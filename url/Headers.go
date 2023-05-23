@@ -16,6 +16,10 @@ const PHeaderOrderKey = "PHeader-Order:"
 // * 请求header 部分
 type Header Common
 
+var DefaultHeaders map[string]string = map[string]string{
+	"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.68",
+}
+
 func (h Header) Add(key, value string) {
 	textproto.MIMEHeader(h).Add(key, value)
 }

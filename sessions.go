@@ -109,7 +109,13 @@ func (s *Session) PreRequest(request *url.Request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	headers := request.Headers.GetAll()
+
+	var headers map[string]string
+	if request.Headers != nil {
+		headers = request.Headers.GetAll()
+	} else {
+		headers = url.DefaultHeaders
+	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
