@@ -37,7 +37,7 @@ func (s *Session) Request(method, rawurl string, request *url.Request) (*models.
 	if request == nil {
 		request = url.NewRequest()
 	}
-
+	request.Url = rawurl
 	resp, err := s.Do(method, request)
 	if err != nil {
 		return nil, err
