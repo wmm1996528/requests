@@ -1,4 +1,4 @@
-package easyreq
+package requests
 
 import (
 	"github.com/wmm1996528/requests/models"
