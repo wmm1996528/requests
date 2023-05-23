@@ -89,7 +89,7 @@ func (s *Session) Do(method string, request *url.Request) (*models.Response, err
 	client := tls.NewClient(request.TlsProfile)
 	request.Method = method
 	preq, err := s.PreRequest(request)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	do, err := client.Do(preq)
