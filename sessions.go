@@ -8,13 +8,11 @@ import (
 	"encoding/json"
 	"github.com/andybalholm/brotli"
 	http "github.com/bogdanfinn/fhttp"
-	"github.com/bogdanfinn/fhttp/cookiejar"
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/wmm1996528/requests/models"
 	"github.com/wmm1996528/requests/tls"
 	"github.com/wmm1996528/requests/url"
 	"io"
-	"io/ioutil"
 	url2 "net/url"
 	"strings"
 )
@@ -25,18 +23,15 @@ func NewSession(tlsVersion tls.TlsVersion) *Session {
 }
 
 type Session struct {
-	Params       *url.Params
-	Headers      *url.Header
-	Cookies      *cookiejar.Jar
-	Auth         []string
-	Proxies      string
-	Verify       bool
-	Cert         []string
-	Ja3          string
-	MaxRedirects int
-	request      *url.Request
-	tlsVersion   int
-	Client       tls_client.HttpClient
+	Params         map[string]string
+	Headers        map[string]string
+	Cookies        map[string]string
+	Auth           []string
+	Proxy          string
+	Verify         bool
+	tlsVersion     int
+	Client         tls_client.HttpClient
+	AllowRedirects bool
 }
 
 // 预请求处理
@@ -99,18 +94,6 @@ func (s *Session) Do(method string, request *url.Request) (*models.Response, err
 		// 初始化个新的
 		s.Client = tls.NewClient(request.TlsProfile)
 	}
-	// 处理cookie
-	if request.Cookies != nil {
-		var cks []*http.Cookie
-		for k, v := range request.Cookies {
-			cks = append(cks, &http.Cookie{
-				Name:  k,
-				Value: v,
-			})
-		}
-		uri, _ := url2.Parse(request.Url)
-		s.Client.SetCookies(uri, cks)
-	}
 
 	request.Method = method
 	preq, err := s.PreRequest(request)
@@ -134,12 +117,38 @@ func (s *Session) PreRequest(request *url.Request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// * 处理cookie
+	if request.Cookies != nil {
+		var cks []*http.Cookie
+		for k, v := range request.Cookies {
+			cks = append(cks, &http.Cookie{
+				Name:  k,
+				Value: v,
+			})
+		}
+		uri, _ := url2.Parse(request.Url)
+		s.Client.SetCookies(uri, cks)
+	}
+	// * 处理代理
+	if request.Proxy != "" {
+		s.Client.SetProxy(request.Proxy)
+	} else {
+		if s.Proxy != "" {
+			s.Client.SetProxy(s.Proxy)
+		}
+	}
+	// * 是否自动跳转
+	s.Client.SetFollowRedirect(request.AllowRedirects)
+	// * 组合header
 	var headers map[string]string
 	if request.Headers != nil {
 		headers = request.Headers.GetAll()
 	} else {
-		headers = url.DefaultHeaders
+		if len(s.Headers) != 0 {
+			headers = s.Headers
+		} else {
+			headers = url.DefaultHeaders
+		}
 	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
@@ -227,7 +236,7 @@ func decodeGZip(content *[]byte) error {
 		return err
 	}
 	defer r.Close()
-	*content, err = ioutil.ReadAll(r)
+	*content, err = io.ReadAll(r)
 	if err != nil {
 		return err
 	}
@@ -242,7 +251,7 @@ func decodeDeflate(content *[]byte) error {
 	}
 	r := flate.NewReader(bytes.NewReader(*content))
 	defer r.Close()
-	*content, err = ioutil.ReadAll(r)
+	*content, err = io.ReadAll(r)
 	if err != nil {
 		return err
 	}
@@ -256,7 +265,7 @@ func decodeBrotli(content *[]byte) error {
 		return err
 	}
 	r := brotli.NewReader(bytes.NewReader(*content))
-	*content, err = ioutil.ReadAll(r)
+	*content, err = io.ReadAll(r)
 	if err != nil {
 		return err
 	}

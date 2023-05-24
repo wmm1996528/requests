@@ -22,10 +22,10 @@ type Request struct {
 	Auth           []string
 	Timeout        time.Duration
 	AllowRedirects bool
-	Proxies        string
 	Verify         bool
 	ForceHTTP1     bool
 	TlsProfile     tls.TlsVersion
 	Method         string
 	Url            string
+	Proxy          string
 }
