@@ -23,7 +23,6 @@ func NewSession(tlsVersion tls.TlsVersion) *Session {
 }
 
 type Session struct {
-	Params         map[string]string
 	Headers        map[string]string
 	Cookies        map[string]string
 	Auth           []string
@@ -196,6 +195,7 @@ func (s *Session) PreResponse(request *url.Request, do *http.Response) (*models.
 		StatusCode: do.StatusCode,
 		Request:    request,
 	}
+	s.Cookies = resp.Cookies
 
 	return resp, nil
 }
