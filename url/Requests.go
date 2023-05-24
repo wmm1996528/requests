@@ -2,6 +2,7 @@ package url
 
 import (
 	"github.com/bogdanfinn/fhttp/cookiejar"
+	"github.com/wmm1996528/requests/tls"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type Request struct {
 	Proxies        string
 	Verify         bool
 	ForceHTTP1     bool
-	TlsProfile     int
+	TlsProfile     tls.TlsVersion
 	Method         string
 	Url            string
 }

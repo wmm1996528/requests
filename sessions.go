@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	http "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
+	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/wmm1996528/requests/models"
 	"github.com/wmm1996528/requests/tls"
 	"github.com/wmm1996528/requests/url"
 	"io"
 )
 
-func NewSession() *Session {
-
-	return &Session{}
+func NewSession(tlsVersion tls.TlsVersion) *Session {
+	client := tls.NewClient(tlsVersion)
+	return &Session{Client: client}
 }
 
 type Session struct {
@@ -28,6 +29,7 @@ type Session struct {
 	MaxRedirects int
 	request      *url.Request
 	tlsVersion   int
+	Client       tls_client.HttpClient
 }
 
 // 预请求处理
@@ -86,13 +88,18 @@ func (s *Session) Connect(rawurl string, req *url.Request) (*models.Response, er
 }
 
 func (s *Session) Do(method string, request *url.Request) (*models.Response, error) {
-	client := tls.NewClient(request.TlsProfile)
+	if s.Client == nil {
+		// 初始化个新的
+		s.Client = tls.NewClient(request.TlsProfile)
+
+	}
+
 	request.Method = method
 	preq, err := s.PreRequest(request)
 	if err != nil {
 		return nil, err
 	}
-	do, err := client.Do(preq)
+	do, err := s.Client.Do(preq)
 	if err != nil {
 		return nil, err
 	}

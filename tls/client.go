@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func NewClient(tlsProfile int) tls_client.HttpClient {
+func NewClient(tlsProfile TlsVersion) tls_client.HttpClient {
 	var tlsConfig tls_client.ClientProfile
 	switch tlsProfile {
 	case Chrome112:

@@ -1,8 +1,11 @@
 package tls
 
 // * 要使用的tls版本
+type TlsVersion int
+
+const DefaultTls TlsVersion = 1
 const (
-	Chrome112 = 1 + iota
+	Chrome112 = DefaultTls + iota
 	Chrome111
 	Chrome110
 	Chrome109
