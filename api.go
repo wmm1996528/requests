@@ -2,12 +2,13 @@ package requests
 
 import (
 	"github.com/wmm1996528/requests/models"
+	"github.com/wmm1996528/requests/tls"
 	"github.com/wmm1996528/requests/url"
 	"net/http"
 )
 
 func Request(method, rawurl string, req *url.Request) (*models.Response, error) {
-	session := NewSession()
+	session := NewSession(req.TlsProfile | tls.Chrome112)
 	return session.Request(method, rawurl, req)
 }
 
