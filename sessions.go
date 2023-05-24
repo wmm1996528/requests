@@ -102,6 +102,12 @@ func (s *Session) Do(method string, request *url.Request) (*models.Response, err
 	// 处理cookie
 	if request.Cookies != nil {
 		var cks []*http.Cookie
+		for k, v := range request.Cookies {
+			cks = append(cks, &http.Cookie{
+				Name:  k,
+				Value: v,
+			})
+		}
 		uri, _ := url2.Parse(request.Url)
 		s.Client.SetCookies(uri, cks)
 	}
