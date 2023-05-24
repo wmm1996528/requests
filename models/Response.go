@@ -5,19 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bitly/go-simplejson"
-	http "github.com/bogdanfinn/fhttp"
 	"github.com/wmm1996528/requests/url"
-	"io"
 )
 
 // Response结构体
 type Response struct {
 	Url        string
 	Headers    url.Header
-	Cookies    []*http.Cookie
+	Cookies    map[string]string
 	Text       string
 	Content    []byte
-	Body       io.ReadCloser
 	StatusCode int
 	History    []*Response
 	Request    *url.Request
@@ -32,7 +29,7 @@ func (res *Response) Json() (map[string]interface{}, error) {
 
 // 使用go-simplejson解析
 func (res *Response) SimpleJson() (*simplejson.Json, error) {
-	return simplejson.NewFromReader(res.Body)
+	return simplejson.NewJson(res.Content)
 }
 
 // 状态码是否错误

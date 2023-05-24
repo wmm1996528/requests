@@ -1,7 +1,6 @@
 package url
 
 import (
-	"github.com/bogdanfinn/fhttp/cookiejar"
 	"github.com/wmm1996528/requests/tls"
 	"time"
 )
@@ -16,7 +15,7 @@ func NewRequest() *Request {
 type Request struct {
 	Params         *Params
 	Headers        *Header
-	Cookies        *cookiejar.Jar
+	Cookies        map[string]string
 	Data           *Values
 	Json           map[string]interface{}
 	Body           string

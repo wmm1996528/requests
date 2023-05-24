@@ -2,7 +2,11 @@ package requests
 
 import (
 	"bytes"
+	"compress/flate"
+	"compress/gzip"
+	"encoding/binary"
 	"encoding/json"
+	"github.com/andybalholm/brotli"
 	http "github.com/bogdanfinn/fhttp"
 	"github.com/bogdanfinn/fhttp/cookiejar"
 	tls_client "github.com/bogdanfinn/tls-client"
@@ -10,6 +14,9 @@ import (
 	"github.com/wmm1996528/requests/tls"
 	"github.com/wmm1996528/requests/url"
 	"io"
+	"io/ioutil"
+	url2 "net/url"
+	"strings"
 )
 
 func NewSession(tlsVersion tls.TlsVersion) *Session {
@@ -91,7 +98,12 @@ func (s *Session) Do(method string, request *url.Request) (*models.Response, err
 	if s.Client == nil {
 		// 初始化个新的
 		s.Client = tls.NewClient(request.TlsProfile)
-
+	}
+	// 处理cookie
+	if request.Cookies != nil {
+		var cks []*http.Cookie
+		uri, _ := url2.Parse(request.Url)
+		s.Client.SetCookies(uri, cks)
 	}
 
 	request.Method = method
@@ -137,29 +149,110 @@ func (s *Session) PreData(request *url.Request) ([]byte, error) {
 	if request.Data != nil {
 		return []byte(request.Data.Encode()), nil
 	}
+	if request.Body != "" {
+		return []byte(request.Body), nil
+	}
 	return []byte{}, nil
 }
 
 // PreResponse 处理请求返回
 func (s *Session) PreResponse(request *url.Request, do *http.Response) (*models.Response, error) {
-	reader := http.DecompressBody(do)
-	rb, _ := io.ReadAll(reader)
+	rb, err := io.ReadAll(do.Body)
+	if err != nil {
+		return nil, err
+	}
+	encoding := do.Header.Get("Content-Encoding")
+	DecompressBody(&rb, encoding)
+
 	redirectURL, err := do.Location()
 	redirectUrl := ""
 	if err == nil {
 		// 没有错误时从跳转的location 获取url
 		redirectUrl = redirectURL.String()
+	} else {
+		redirectUrl = request.Url
 	}
 	resp := &models.Response{
 		Url:        redirectUrl,
 		Headers:    url.Header(do.Header),
-		Cookies:    do.Cookies(),
+		Cookies:    s.getAllCookie(request),
 		Text:       string(rb),
 		Content:    rb,
-		Body:       reader,
 		StatusCode: do.StatusCode,
 		Request:    request,
 	}
 
 	return resp, nil
+}
+
+func (s *Session) getAllCookie(request *url.Request) map[string]string {
+	res := make(map[string]string)
+	uri, _ := url2.Parse(request.Url)
+	cks := s.Client.GetCookies(uri)
+	for _, ck := range cks {
+		res[ck.Name] = ck.Value
+	}
+
+	return res
+}
+
+// 解码Body数据
+func DecompressBody(content *[]byte, encoding string) {
+	if encoding != "" {
+		if strings.ToLower(encoding) == "gzip" {
+			decodeGZip(content)
+		} else if strings.ToLower(encoding) == "deflate" {
+			decodeDeflate(content)
+		} else if strings.ToLower(encoding) == "br" {
+			decodeBrotli(content)
+		}
+	}
+}
+
+// 解码GZip编码
+func decodeGZip(content *[]byte) error {
+	if content == nil {
+		return nil
+	}
+	b := new(bytes.Buffer)
+	binary.Write(b, binary.LittleEndian, content)
+	r, err := gzip.NewReader(b)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	*content, err = ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 解码deflate编码
+func decodeDeflate(content *[]byte) error {
+	var err error
+	if content == nil {
+		return err
+	}
+	r := flate.NewReader(bytes.NewReader(*content))
+	defer r.Close()
+	*content, err = ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 解码br编码
+func decodeBrotli(content *[]byte) error {
+	var err error
+	if content == nil {
+		return err
+	}
+	r := brotli.NewReader(bytes.NewReader(*content))
+	*content, err = ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return nil
 }
