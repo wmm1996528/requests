@@ -137,7 +137,16 @@ func (s *Session) PreRequest(request *url.Request) (*http.Request, error) {
 		}
 	}
 	// * 是否自动跳转
-	s.Client.SetFollowRedirect(request.AllowRedirects)
+	if request.AllowRedirects {
+		s.Client.SetFollowRedirect(request.AllowRedirects)
+	} else {
+		if s.AllowRedirects {
+			s.Client.SetFollowRedirect(s.AllowRedirects)
+		} else {
+			s.Client.SetFollowRedirect(s.AllowRedirects)
+		}
+	}
+
 	// * 组合header
 	var headers map[string]string
 	if request.Headers != nil {
