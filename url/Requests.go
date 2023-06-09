@@ -7,6 +7,7 @@ import (
 
 func NewRequest() *Request {
 	return &Request{
+		Headers:        NewHeaders(),
 		AllowRedirects: true,
 		Verify:         true,
 	}
